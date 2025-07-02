@@ -1,0 +1,9 @@
+# Ignore visual studio/code files
+.vs/
+.vscode/
+
+# Ignore the out folder
+out/
+
+# Macos if any
+.DS_Store
