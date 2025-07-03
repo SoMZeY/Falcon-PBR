@@ -7,3 +7,6 @@ out/
 
 # Macos if any
 .DS_Store
+
+# Ignore the personal history folder
+history/
