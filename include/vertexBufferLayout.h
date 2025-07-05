@@ -34,6 +34,10 @@ class VertexBufferLayout
 public:
 	VertexBufferLayout()
 		: m_Stride(0) {}
+	VertexBufferLayout(const VertexBufferLayout&) = delete;
+	VertexBufferLayout& operator=(const VertexBufferLayout&) = delete;
+	VertexBufferLayout(VertexBufferLayout&&) noexcept = default;
+	VertexBufferLayout& operator=(VertexBufferLayout&&) noexcept = default;
 
 	template<typename T>
 	void Push(unsigned int count) {

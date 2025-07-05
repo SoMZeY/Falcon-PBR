@@ -16,7 +16,8 @@ add_subdirectory("vendor/glad")
 add_subdirectory("vendor/stb_image")
 
 add_executable(Falcon-PBR "main.cpp" "include/shader.h" "src/shader.cpp" "include/openglErrorReporting.h" "src/openglErrorReporting.cpp" "include/vertexBuffer.h" "src/vertexBuffer.cpp"
-	"include/indexBuffer.h" "src/indexBuffer.cpp" "include/vertexArray.h" "src/vertexArray.cpp" "include/vertexBufferLayout.h" "src/vertexBufferLayout.cpp")
+	"include/indexBuffer.h"  "include/vertexArray.h" "src/vertexArray.cpp" "include/vertexBufferLayout.h" "src/vertexBufferLayout.cpp" "include/camera.h" "src/camera.cpp" "include/iCameraController.h" 
+	"include/fpsCameraController.h" "src/fpsCameraController.cpp")
 
 #if(MSVC)
 #    set_property(TARGET Falcon-PBR PROPERTY
