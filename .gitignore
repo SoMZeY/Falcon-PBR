@@ -10,3 +10,6 @@ out/
 
 # Ignore the personal history folder
 history/
+
+# Ignore the learning foldre
+learning/
