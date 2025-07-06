@@ -14,10 +14,11 @@ add_subdirectory("vendor/glfw-3.4")
 add_subdirectory("vendor/glm-1.0.0")
 add_subdirectory("vendor/glad")
 add_subdirectory("vendor/stb_image")
+add_subdirectory("vendor/tiny_gltf")
 
 add_executable(Falcon-PBR "main.cpp" "include/shader.h" "src/shader.cpp" "include/openglErrorReporting.h" "src/openglErrorReporting.cpp" "include/vertexBuffer.h" "src/vertexBuffer.cpp"
 	"include/indexBuffer.h"  "include/vertexArray.h" "src/vertexArray.cpp" "include/vertexBufferLayout.h" "src/vertexBufferLayout.cpp" "include/camera.h" "src/camera.cpp" "include/iCameraController.h" 
-	"include/fpsCameraController.h" "src/fpsCameraController.cpp")
+	"include/fpsCameraController.h" "src/fpsCameraController.cpp" "include/gltfScene.h" "src/gltfScene.cpp")
 
 #if(MSVC)
 #    set_property(TARGET Falcon-PBR PROPERTY
@@ -35,4 +36,4 @@ file(GLOB_RECURSE PROJECT_SRC CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src
 target_include_directories(Falcon-PBR PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 target_sources(Falcon-PBR PUBLIC "${PROJECT_SRC}")
 
-target_link_libraries(Falcon-PBR PRIVATE glfw glad glm stb_image)
+target_link_libraries(Falcon-PBR PRIVATE glfw glad glm stb_image tiny_gltf)
