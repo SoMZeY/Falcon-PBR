@@ -39,6 +39,8 @@ private:
 		std::vector<PrimitiveRange>		draws;
 
 		//void render(const std::vector<Material>& mats) const;
+		// Temporary until the materials are implemented
+		void render() const;
 	};
 	std::vector<Mesh> meshes;
 	//std::vector<Material> materials;
