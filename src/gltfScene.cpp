@@ -151,7 +151,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
         pr.firstIndex = runningIndexBase;
         pr.indexCount = idxAcc.count;
         pr.baseVertex = runningVertexBase;
-        //pr.materialIdx = prim.material;                 // << added
+        //pr.materialIdx = prim.material;
         Cmesh.draws.push_back(pr);
 
         // Write vertices ------------------------------------------------------------------------
@@ -160,7 +160,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
             // position (always there)
             vertexData.insert(vertexData.end(), posPtr + i * stepPos, posPtr + i * stepPos + 3);
 
-            // normal  (write zeros if mesh expects normals but this primitive lacks them)
+            // normal
             if (hasNormal)
             {
                 if (normPtr)
@@ -206,12 +206,12 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
         vertexData.size() * sizeof(float), GL_STATIC_DRAW);
 
     VertexBufferLayout vbl;
-    vbl.Push<float>(3);                  // pos
-    if (hasNormal) vbl.Push<float>(3);   // normal
-    if (hasUV)     vbl.Push<float>(2);   // uv
+    vbl.Push<float>(3);
+    if (hasNormal) vbl.Push<float>(3);
+    if (hasUV)     vbl.Push<float>(2);
 
     Cmesh.vao = std::make_unique<VertexArray>();
-    Cmesh.vao->AddBuffer(*Cmesh.vbo, vbl /*, stride * sizeof(float) */); // pass stride if your API allows
+    Cmesh.vao->AddBuffer(*Cmesh.vbo, vbl);
 
     Cmesh.ibo = std::make_unique<IndexBuffer>(indexData.data(),
         indexData.size(), GL_STATIC_DRAW);
