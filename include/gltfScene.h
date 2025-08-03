@@ -1,6 +1,9 @@
 #ifndef GLTF_SCENE_H
 #define GLTF_SCENE_H
 
+// TODO later: figure this out
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -10,12 +13,11 @@
 #include <vertexBuffer.h>
 #include <indexBuffer.h>
 
+
 class GLTFScene
 {
 public:
 	GLTFScene(const std::string& filename);
-	~GLTFScene() = default;
-
 	void Draw() const;
 
 private:
@@ -31,6 +33,8 @@ private:
 		int			 material   = -1;
 	};
 
+	// Keep the per primitve draw approach for now
+	// TODO later: collapse into single draw call for each mesh
 	struct Mesh
 	{
 		std::unique_ptr<VertexArray>	vao;

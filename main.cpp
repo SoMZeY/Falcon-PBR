@@ -9,6 +9,7 @@
 #include <indexBuffer.h>
 #include <shader.h>
 #include <fpsCameraController.h>
+#include <gltfScene.h>
 
 // Global controller to tie the callbacks (Perhaps change later to have no globals)
 FpsCameraController* g_controller = nullptr;
@@ -95,6 +96,12 @@ int main()
 		0, 1, 2
 	};
 
+	// Load Damaged Helmet
+	GLTFScene damagedHelmet(std::string(RESOURCES_PATH) + "models/gltf/DamagedHelmet.glb");
+	// Create shaders and shader program for the damagedHelmet
+	Shader damagedHelmetProgram((std::string(RESOURCES_PATH) + "shaders/vertexGltf.vert").c_str(),
+		(std::string(RESOURCES_PATH) + "shaders/fragmentGltf.frag").c_str());
+	
 	// Create and bind vbo
 	VertexBuffer vbo(verticesTriangle, sizeof(verticesTriangle), GL_STATIC_DRAW);
 	vbo.Bind();
@@ -151,20 +158,25 @@ int main()
 		glm::mat4 projection = camera.GetProjectionMatrix();
 
 		// Bind vbo
-		vbo.Bind();
+		//vbo.Bind();
 
-		// Bind vao
-		vao.Bind();
+		//// Bind vao
+		//vao.Bind();
 
-		// Use program
-		shaderProgram.use();
-		shaderProgram.setMat4("u_Model", glm::mat4(1.0f));
-		shaderProgram.setMat4("u_View", view);
-		shaderProgram.setMat4("u_Projection", projection);
+		//// Use program
+		//shaderProgram.use();
+		//shaderProgram.setMat4("u_Model", glm::mat4(1.0f));
+		//shaderProgram.setMat4("u_View", view);
+		//shaderProgram.setMat4("u_Projection", projection);
 
 
-		// Do a draw triangles call
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+		glm::mat4 model = glm::mat4(1.0f);          // later: animate / place
+		//glm::mat4 mvp = projection * view * model;
+		damagedHelmetProgram.use();
+		damagedHelmetProgram.setMat4("u_Model", glm::mat4(1.0f));
+		damagedHelmetProgram.setMat4("u_View", view);
+		damagedHelmetProgram.setMat4("u_Projection", projection);     // make sure the setter calls glUniformMatrix4fv
+		damagedHelmet.Draw();
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);

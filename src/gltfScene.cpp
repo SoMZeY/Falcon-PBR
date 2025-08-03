@@ -7,13 +7,17 @@ GLTFScene::GLTFScene(const std::string& filename)
 	LoadFromFile(filename);
 }
 
-GLTFScene::~GLTFScene()
-{
-	// TODO
-}
-
 void GLTFScene::Draw() const
 {
+    for (const Mesh& mesh : meshes)
+    {
+        mesh.vbo->Bind();
+        mesh.vao->Bind();
+        for (const PrimitiveRange& prim : mesh.draws)
+        {
+            glDrawElementsBaseVertex(GL_TRIANGLES, prim.indexCount, GL_UNSIGNED_INT, reinterpret_cast<void*>(sizeof(uint32_t) * prim.firstIndex), prim.baseVertex);
+        }
+    }
 }
 
 void GLTFScene::LoadFromFile(const std::string& path)
@@ -36,154 +40,183 @@ void GLTFScene::LoadFromFile(const std::string& path)
 		throw std::runtime_error("Failed to load GLTF file: " + path);
 
 	// Load Materials and Meshes
-	for (const auto& material : model.materials) LoadMaterial(model, material);
+	//for (const auto& material : model.materials) LoadMaterial(model, material);
 	for (const auto& mesh : model.meshes)    LoadMesh(model, mesh);
 }
 
 // TODO: create some kind of error handling. Currently the function is exception prone
 void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mesh)
 {
-	// Pre scan to know total sizes
-	unsigned int totalVertices = 0;
-	unsigned int totalIndices = 0;
+    // Pre scan to know total sizes
+    unsigned int totalVertices = 0;
+    unsigned int totalIndices = 0;
 
-	// Temporary struct to help tracking metadata per primitive
-	struct PrimMeta
-	{
-		const tinygltf::Primitive* primitive;
-		size_t vertexCount;
-		size_t indexCount;
+    // Temporary struct to help tracking metadata per primitive
+    struct PrimMeta
+    {
+        const tinygltf::Primitive* primitive;
+        size_t vertexCount;
+        size_t indexCount;
 
-		PrimMeta(const tinygltf::Primitive* prim, size_t vCount, size_t iCount)
-		{
-			primitive = prim;
-			vertexCount = vCount;
-			indexCount = iCount;
-		}
-	};
-	
-	// Have a vector of all primtives metadata per mesh
-	std::vector<PrimMeta> tmp;
+        PrimMeta(const tinygltf::Primitive* prim, size_t vCount, size_t iCount)
+            : primitive{ prim }, vertexCount{ vCount }, indexCount{ iCount } {
+        }
+    };
 
-	// Populate all of the primitives
-	for (const tinygltf::Primitive& primitive : mesh.primitives)
-	{
-		// Get the position metadata and index metadata
-		const auto& posAcc = model.accessors.at(primitive.attributes.at("POSITION"));
-		const auto& idxAcc = model.accessors.at(primitive.indices);
+    // Have a vector of all primtives metadata per mesh
+    std::vector<PrimMeta> tmp;
 
-		// Add to the tmp vector and save the total number of vertices and indeces
-		tmp.push_back(PrimMeta( &primitive, posAcc.count, idxAcc.count ));
-		totalVertices += posAcc.count;
-		totalIndices += idxAcc.count;
-	}
+    // Populate all of the primitives
+    for (const tinygltf::Primitive& primitive : mesh.primitives)
+    {
+        const auto& posAcc = model.accessors.at(primitive.attributes.at("POSITION"));
+        const auto& idxAcc = model.accessors.at(primitive.indices);
 
-	// Interleaved data (pos|norm|uv)
-	std::vector<float> vertexData;
-	std::vector<unsigned int> indexData;
+        tmp.emplace_back(&primitive, posAcc.count, idxAcc.count);
+        totalVertices += posAcc.count;
+        totalIndices += idxAcc.count;
+    }
 
-	// To prevent multiple reallocations, reserve the capacity here
-	// So 3 floats for pos, 3 floats for norm, and 2 floats for uv
-	vertexData.reserve(totalVertices * 8);
+    // Interleaved data (pos|norm|uv)
+    std::vector<float>    vertexData;  vertexData.reserve(totalVertices * 8); // 3+3+2 max
+    std::vector<uint32_t> indexData;   indexData.reserve(totalIndices);
 
-	// Reserve capacity for the total amount of indexes
-	indexData.reserve(totalIndices);
+    // Check which attributes exist across the whole mesh
+    bool hasNormal = false, hasUV = false;
+    for (auto& t : tmp)
+    {
+        hasNormal |= t.primitive->attributes.count("NORMAL");
+        hasUV |= t.primitive->attributes.count("TEXCOORD_0");
+    }
+    const unsigned int stride = 3 + (hasNormal ? 3 : 0) + (hasUV ? 2 : 0);
 
-	// TODO later: Add guard
-	// Assume that the first primitive's attributes are representative of the rest
-	const bool hasNormal = tmp.front().primitive->attributes.count("NORMAL");
-	const bool hasUV = tmp.front().primitive->attributes.count("TEXCOORD_0");
-	const unsigned int stride = 3 + (hasNormal ? 3 : 0) + (hasUV ? 2 : 0);
-	
-	// Vertices packed so far
-	unsigned int runningVertexBase = 0;
+    // Vertices / indices packed so far
+    unsigned int runningVertexBase = 0;
+    unsigned int runningIndexBase = 0;
 
-	// Pack each primitive
-	Mesh Cmesh;
-	for (const auto& primMeta : tmp)
-	{
-		const tinygltf::Primitive &prim = *primMeta.primitive;
+    // Pack each primitive -----------------------------------------------------------------------
+    Mesh Cmesh;
+    for (const auto& primMeta : tmp)
+    {
+        const tinygltf::Primitive& prim = *primMeta.primitive;
 
-		// Define the pos, norm and UV data
-		const float* posPtr  = nullptr;
-		const float* normPtr = nullptr;
-		const float* uvPtr   = nullptr;
+        // Resolve POSITION
+        const auto& posAcc = model.accessors.at(prim.attributes.at("POSITION"));
+        const auto& posView = model.bufferViews.at(posAcc.bufferView);
+        const auto& posBuf = model.buffers.at(posView.buffer);
+        const float* posPtr = reinterpret_cast<const float*>(
+            &posBuf.data[posView.byteOffset + posAcc.byteOffset]);
 
-		// Save the bufferView strides for each
-		uint32_t posViewStride  = 0;
-		uint32_t normViewStride = 0;
-		uint32_t uvViewStride   = 0;
+        // Resolve NORMAL (if any)
+        const float* normPtr = nullptr;
+        const auto* normAccPtr = prim.attributes.count("NORMAL") ?
+            &model.accessors.at(prim.attributes.at("NORMAL")) : nullptr;
+        if (normAccPtr)
+        {
+            const auto& normView = model.bufferViews.at(normAccPtr->bufferView);
+            const auto& normBuf = model.buffers.at(normView.buffer);
+            normPtr = reinterpret_cast<const float*>(
+                &normBuf.data[normView.byteOffset + normAccPtr->byteOffset]);
+        }
 
-		// Resolve and reinterpret POSITION attribute into float pointer
-		const auto& posAcc  = model.accessors.at(prim.attributes.at("POSITION"));
-		const auto& posView = model.bufferViews.at(posAcc.bufferView);
-		const auto& posBuf  = model.buffers.at(posView.buffer);
-		posViewStride = posView.byteStride;
-		if (posAcc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT && posAcc.type == TINYGLTF_TYPE_VEC3)
-			posPtr = reinterpret_cast<const float*>(&posBuf.data[posView.byteOffset + posAcc.byteOffset]);
-		else {} // TODO; handle the case
+        // Resolve TEXCOORD_0 (if any)
+        const float* uvPtr = nullptr;
+        const auto* uvAccPtr = prim.attributes.count("TEXCOORD_0") ?
+            &model.accessors.at(prim.attributes.at("TEXCOORD_0")) : nullptr;
+        if (uvAccPtr)
+        {
+            const auto& uvView = model.bufferViews.at(uvAccPtr->bufferView);
+            const auto& uvBuf = model.buffers.at(uvView.buffer);
+            uvPtr = reinterpret_cast<const float*>(
+                &uvBuf.data[uvView.byteOffset + uvAccPtr->byteOffset]);
+        }
 
-		// If NORMAL exist then Resolve and reinterpret cast into float
-		if (hasNormal)
-		{
-			const auto& normAcc = model.accessors.at(prim.attributes.at("NORMAL"));
-			const auto& normView = model.bufferViews.at(normAcc.bufferView);
-			const auto& normBuf = model.buffers.at(normView.buffer);
-			normViewStride = normView.byteStride;
+        // Index buffer
+        const auto& idxAcc = model.accessors.at(prim.indices);
+        const auto& idxView = model.bufferViews.at(idxAcc.bufferView);
+        const auto& idxBuf = model.buffers.at(idxView.buffer);
+        const uint8_t* idxRaw = &idxBuf.data[idxView.byteOffset + idxAcc.byteOffset];
 
-			if (normAcc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT && normAcc.type == TINYGLTF_TYPE_VEC3)
-				normPtr = reinterpret_cast<const float*>(&normBuf.data[normView.byteOffset + normAcc.byteOffset]);
-			else {} // TODO; handle the case
-		}
+        // Helper lambdas ------------------------------------------------------------------------
+        auto floatStep = [](uint32_t byteStride, uint32_t elems)
+            {
+                return byteStride ? byteStride / sizeof(float) : elems;
+            };
+        const uint32_t stepPos = floatStep(posView.byteStride, 3);
+        const uint32_t stepNorm = normAccPtr ? floatStep(model.bufferViews.at(normAccPtr->bufferView).byteStride, 3) : 0;
+        const uint32_t stepUV = uvAccPtr ? floatStep(model.bufferViews.at(uvAccPtr->bufferView).byteStride, 2) : 0;
 
-		// If UV exist then Resolve and reinterpret cast into float
-		if (hasUV)
-		{
-			const auto& uvAcc  = model.accessors.at(prim.attributes.at("TEXCOORD_0"));
-			const auto& uvView = model.bufferViews.at(uvAcc.bufferView);
-			const auto& uvBuf  = model.buffers.at(uvView.buffer);
-			uvViewStride = uvView.byteStride;
-			if (uvAcc.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT && uvAcc.type == TINYGLTF_TYPE_VEC2)
-				uvPtr = reinterpret_cast<const float*>(&uvBuf.data[uvView.byteOffset + uvAcc.byteOffset]);
-			else {} // TODO; handle the case
-		}
+        // Record draw info ----------------------------------------------------------------------
+        PrimitiveRange pr;
+        pr.firstIndex = runningIndexBase;
+        pr.indexCount = idxAcc.count;
+        pr.baseVertex = runningVertexBase;
+        //pr.materialIdx = prim.material;                 // << added
+        Cmesh.draws.push_back(pr);
 
-		// Interleave into vertex data
-		for (uint32_t i = 0; i < posAcc.count; i++)
-		{
-			// POSITION DATA
-			uint32_t bStride;
-			if (posPtr)
-			{
-				assert(posViewStride % 4 == 0);
-				bStride = (posViewStride == 0) ? 3 : posViewStride / 4;
-				vertexData.push_back(posPtr[i * bStride + 0]);
-				vertexData.push_back(posPtr[i * bStride + 1]);
-				vertexData.push_back(posPtr[i * bStride + 2]);
-			}
+        // Write vertices ------------------------------------------------------------------------
+        for (uint32_t i = 0; i < posAcc.count; ++i)
+        {
+            // position (always there)
+            vertexData.insert(vertexData.end(), posPtr + i * stepPos, posPtr + i * stepPos + 3);
 
-			// Normals
-			if (normPtr)
-			{
-				assert(normViewStride % 4 == 0);
-				bStride = (normViewStride == 0) ? 3 : normViewStride / 4;
-				vertexData.push_back(normPtr[i * bStride + 0]);
-				vertexData.push_back(normPtr[i * bStride + 1]);
-				vertexData.push_back(normPtr[i * bStride + 2]);
-			}
-			
-			// UV
-			if (uvPtr)
-			{
-				assert(uvViewStride % 4 == 0);
-				bStride = (uvViewStride == 0) ? 2 : uvViewStride / 4;
-				vertexData.push_back(uvPtr[i * bStride + 0]);
-				vertexData.push_back(uvPtr[i * bStride + 1]);
-			}
-		}
+            // normal  (write zeros if mesh expects normals but this primitive lacks them)
+            if (hasNormal)
+            {
+                if (normPtr)
+                    vertexData.insert(vertexData.end(), normPtr + i * stepNorm, normPtr + i * stepNorm + 3);
+                else
+                    vertexData.insert(vertexData.end(), { 0.f, 0.f, 0.f });
+            }
 
-		runningVertexBase += posAcc.count;
-	}
+            // uv
+            if (hasUV)
+            {
+                if (uvPtr)
+                    vertexData.insert(vertexData.end(), uvPtr + i * stepUV, uvPtr + i * stepUV + 2);
+                else
+                    vertexData.insert(vertexData.end(), { 0.f, 0.f });
+            }
+        }
+
+        // Write indices -------------------------------------------------------------------------
+        auto pushIndex = [&](uint32_t v) { indexData.push_back(v + runningVertexBase); };
+        if (idxAcc.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+        {
+            const uint8_t* src = reinterpret_cast<const uint8_t*>(idxRaw);
+            for (size_t k = 0; k < idxAcc.count; ++k) pushIndex(src[k]);
+        }
+        else if (idxAcc.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+        {
+            const uint16_t* src = reinterpret_cast<const uint16_t*>(idxRaw);
+            for (size_t k = 0; k < idxAcc.count; ++k) pushIndex(src[k]);
+        }
+        else // UNSIGNED_INT
+        {
+            const uint32_t* src = reinterpret_cast<const uint32_t*>(idxRaw);
+            for (size_t k = 0; k < idxAcc.count; ++k) pushIndex(src[k]);
+        }
+
+        runningVertexBase += posAcc.count;
+        runningIndexBase += idxAcc.count;
+    }
+
+    // Populate GPU objects ----------------------------------------------------------------------
+    Cmesh.vbo = std::make_unique<VertexBuffer>(vertexData.data(),
+        vertexData.size() * sizeof(float), GL_STATIC_DRAW);
+
+    VertexBufferLayout vbl;
+    vbl.Push<float>(3);                  // pos
+    if (hasNormal) vbl.Push<float>(3);   // normal
+    if (hasUV)     vbl.Push<float>(2);   // uv
+
+    Cmesh.vao = std::make_unique<VertexArray>();
+    Cmesh.vao->AddBuffer(*Cmesh.vbo, vbl /*, stride * sizeof(float) */); // pass stride if your API allows
+
+    Cmesh.ibo = std::make_unique<IndexBuffer>(indexData.data(),
+        indexData.size(), GL_STATIC_DRAW);
+
+    meshes.push_back(std::move(Cmesh));
 }
 
 void GLTFScene::LoadMaterial(const tinygltf::Model& model, const tinygltf::Material& material)
