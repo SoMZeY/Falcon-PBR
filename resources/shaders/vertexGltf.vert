@@ -1,11 +1,13 @@
+// vertex.glsl
 #version 330 core
 layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec2 aUV;
 
-uniform mat4 u_View;
-uniform mat4 u_Projection;
-uniform mat4 u_Model;
+uniform mat4 u_MVP;
+out vec2 vUV;
 
-void main() 
-{ 
-	gl_Position = u_Projection * u_View * u_Model * vec4(aPos, 1.0); 
+void main()
+{
+    vUV         = aUV;
+    gl_Position = u_MVP * vec4(aPos, 1.0);
 }

@@ -1,29 +1,26 @@
 #ifndef GLTF_SCENE_H
 #define GLTF_SCENE_H
 
-// TODO later: figure this out
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-
 #include <string>
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
-#include <tiny_gltf.h>
 #include <vertexArray.h>
 #include <vertexBuffer.h>
 #include <indexBuffer.h>
-
+#include "material.h"
+#include "gltfTextureCache.h"
 
 class GLTFScene
 {
 public:
 	GLTFScene(const std::string& filename);
-	void Draw() const;
+	void Draw(Shader& shaderProgram) const;
 
 private:
 	void LoadFromFile(const std::string& path);
 	void LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mesh);
-	void LoadMaterial(const tinygltf::Model& model, const tinygltf::Material& material);
+	void LoadMaterial(const tinygltf::Model& model, uint32_t materialIndx);
 
 	struct PrimitiveRange
 	{
@@ -47,8 +44,9 @@ private:
 		void render() const;
 	};
 	std::vector<Mesh> meshes;
-	//std::vector<Material> materials;
+	std::vector<Material> materials;
 	tinygltf::Model model;
+	GltfTextureCache textureCache;
 };
 
 #endif

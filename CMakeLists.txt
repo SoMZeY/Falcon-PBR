@@ -18,7 +18,8 @@ add_subdirectory("vendor/tiny_gltf")
 
 add_executable(Falcon-PBR "main.cpp" "include/shader.h" "src/shader.cpp" "include/openglErrorReporting.h" "src/openglErrorReporting.cpp" "include/vertexBuffer.h" "src/vertexBuffer.cpp"
 	"include/indexBuffer.h"  "include/vertexArray.h" "src/vertexArray.cpp" "include/vertexBufferLayout.h" "src/vertexBufferLayout.cpp" "include/camera.h" "src/camera.cpp" "include/iCameraController.h" 
-	"include/fpsCameraController.h" "src/fpsCameraController.cpp" "include/gltfScene.h" "src/gltfScene.cpp")
+	"include/fpsCameraController.h" "src/fpsCameraController.cpp" "include/gltfScene.h" "src/gltfScene.cpp" "include/texture.h" "src/texture.cpp" "include/material.h" "src/material.cpp" 
+	"include/gltfTextureCache.h" "src/gltfTextureCache.cpp")
 
 #if(MSVC)
 #    set_property(TARGET Falcon-PBR PROPERTY

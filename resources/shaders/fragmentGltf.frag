@@ -1,3 +1,11 @@
+// fragment.glsl
 #version 330 core
+in  vec2 vUV;
+
+uniform sampler2D aTexture;   // bound to texture unit 0
 out vec4 FragColor;
-void main() { FragColor = vec4(1.0); }   // pure white
+
+void main()
+{
+    FragColor = texture(aTexture, vUV);
+}

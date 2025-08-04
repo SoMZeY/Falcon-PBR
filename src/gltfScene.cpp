@@ -7,7 +7,7 @@ GLTFScene::GLTFScene(const std::string& filename)
 	LoadFromFile(filename);
 }
 
-void GLTFScene::Draw() const
+void GLTFScene::Draw(Shader& shaderProgram) const
 {
     for (const Mesh& mesh : meshes)
     {
@@ -15,6 +15,8 @@ void GLTFScene::Draw() const
         mesh.vao->Bind();
         for (const PrimitiveRange& prim : mesh.draws)
         {
+            if (prim.material >= 0) materials.at(prim.material).Bind(shaderProgram, 0);
+            else materials.at(0).Bind(shaderProgram, 0);
             glDrawElementsBaseVertex(GL_TRIANGLES, prim.indexCount, GL_UNSIGNED_INT, reinterpret_cast<void*>(sizeof(uint32_t) * prim.firstIndex), prim.baseVertex);
         }
     }
@@ -41,7 +43,8 @@ void GLTFScene::LoadFromFile(const std::string& path)
 
 	// Load Materials and Meshes
 	//for (const auto& material : model.materials) LoadMaterial(model, material);
-	for (const auto& mesh : model.meshes)    LoadMesh(model, mesh);
+    for (int i = 0; i < model.materials.size(); i++) LoadMaterial(model, i);
+	for (const auto& mesh : model.meshes)            LoadMesh(model, mesh);
 }
 
 // TODO: create some kind of error handling. Currently the function is exception prone
@@ -94,7 +97,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
     unsigned int runningVertexBase = 0;
     unsigned int runningIndexBase = 0;
 
-    // Pack each primitive -----------------------------------------------------------------------
+    // Pack each primitive
     Mesh Cmesh;
     for (const auto& primMeta : tmp)
     {
@@ -137,7 +140,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
         const auto& idxBuf = model.buffers.at(idxView.buffer);
         const uint8_t* idxRaw = &idxBuf.data[idxView.byteOffset + idxAcc.byteOffset];
 
-        // Helper lambdas ------------------------------------------------------------------------
+        // Helper lambdas
         auto floatStep = [](uint32_t byteStride, uint32_t elems)
             {
                 return byteStride ? byteStride / sizeof(float) : elems;
@@ -146,15 +149,15 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
         const uint32_t stepNorm = normAccPtr ? floatStep(model.bufferViews.at(normAccPtr->bufferView).byteStride, 3) : 0;
         const uint32_t stepUV = uvAccPtr ? floatStep(model.bufferViews.at(uvAccPtr->bufferView).byteStride, 2) : 0;
 
-        // Record draw info ----------------------------------------------------------------------
+        // Record draw info
         PrimitiveRange pr;
         pr.firstIndex = runningIndexBase;
         pr.indexCount = idxAcc.count;
         pr.baseVertex = runningVertexBase;
-        //pr.materialIdx = prim.material;
+        if (pr.material >= 0) pr.material = prim.material;
         Cmesh.draws.push_back(pr);
 
-        // Write vertices ------------------------------------------------------------------------
+        // Write vertices
         for (uint32_t i = 0; i < posAcc.count; ++i)
         {
             // position (always there)
@@ -179,7 +182,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
             }
         }
 
-        // Write indices -------------------------------------------------------------------------
+        // Write indices
         auto pushIndex = [&](uint32_t v) { indexData.push_back(v + runningVertexBase); };
         if (idxAcc.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
         {
@@ -201,7 +204,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
         runningIndexBase += idxAcc.count;
     }
 
-    // Populate GPU objects ----------------------------------------------------------------------
+    // Populate GPU objects
     Cmesh.vbo = std::make_unique<VertexBuffer>(vertexData.data(),
         vertexData.size() * sizeof(float), GL_STATIC_DRAW);
 
@@ -212,6 +215,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
 
     Cmesh.vao = std::make_unique<VertexArray>();
     Cmesh.vao->AddBuffer(*Cmesh.vbo, vbl);
+    Cmesh.vao->Bind();
 
     Cmesh.ibo = std::make_unique<IndexBuffer>(indexData.data(),
         indexData.size(), GL_STATIC_DRAW);
@@ -219,9 +223,29 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
     meshes.push_back(std::move(Cmesh));
 }
 
-void GLTFScene::LoadMaterial(const tinygltf::Model& model, const tinygltf::Material& material)
+void GLTFScene::LoadMaterial(const tinygltf::Model& model, uint32_t materialIndx)
 {
-	//TODO
+    const tinygltf::Material& gltfMaterial = model.materials[materialIndx];
+    const int baseColorIndx = gltfMaterial.pbrMetallicRoughness.baseColorTexture.index;
+    
+    // If not baseColor then push white color
+    // TODO: fix later
+    if (baseColorIndx == -1)
+    {
+        std::cerr << "Material does not have baseColorIndex" << std::endl;
+        unsigned char whitePixel[4] = { 255, 255, 255, 255 }; // RGBA white pixel
+        materials.push_back(std::make_shared<Texture>(1, 1, GL_SRGB8_ALPHA8, GL_RGBA,
+            GL_UNSIGNED_BYTE, whitePixel));
+        return;
+    }
+    
+    // Get the image index 
+    int texturesSource = model.textures.at(baseColorIndx).source;
+    
+    // Pass the info to the textureCache to see if exist or create it if does not exist
+    std::shared_ptr<Texture> texture = textureCache.getTextureId(model, texturesSource);
+    
+    materials.push_back(texture);
 }
 
 void GLTFScene::Mesh::render() const

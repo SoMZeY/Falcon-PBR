@@ -156,27 +156,11 @@ int main()
 		controller.Update(deltaTime);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetProjectionMatrix();
-
-		// Bind vbo
-		//vbo.Bind();
-
-		//// Bind vao
-		//vao.Bind();
-
-		//// Use program
-		//shaderProgram.use();
-		//shaderProgram.setMat4("u_Model", glm::mat4(1.0f));
-		//shaderProgram.setMat4("u_View", view);
-		//shaderProgram.setMat4("u_Projection", projection);
-
-
-		glm::mat4 model = glm::mat4(1.0f);          // later: animate / place
-		//glm::mat4 mvp = projection * view * model;
+		glm::mat4 model = glm::mat4(1.0f);
 		damagedHelmetProgram.use();
-		damagedHelmetProgram.setMat4("u_Model", glm::mat4(1.0f));
-		damagedHelmetProgram.setMat4("u_View", view);
-		damagedHelmetProgram.setMat4("u_Projection", projection);     // make sure the setter calls glUniformMatrix4fv
-		damagedHelmet.Draw();
+		glm::mat4 mvp = projection * view * model;
+		damagedHelmetProgram.setMat4("u_MVP", mvp);
+		damagedHelmet.Draw(damagedHelmetProgram);
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);

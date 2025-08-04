@@ -10,7 +10,7 @@ public:
     Shader(const char* vertexPath, const char* fragmentPath);
 
     // Activate the shader
-    void use();
+    void use() const;
 
     // Utility uniform functions
     void setBool(const std::string& name, bool value) const;
