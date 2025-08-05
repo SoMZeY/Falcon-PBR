@@ -13,7 +13,7 @@
 
 // Global controller to tie the callbacks (Perhaps change later to have no globals)
 FpsCameraController* g_controller = nullptr;
-
+bool windowClose = false;
 #include <iostream>
 
 // Input callbacks
@@ -42,6 +42,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+	if (key == GLFW_KEY_ESCAPE) windowClose = true;
 	if (g_controller) g_controller->OnKeyPress(key, action);
 }
 
@@ -146,13 +147,14 @@ int main()
 
 	while (!glfwWindowShouldClose(window))
 	{
+		if (windowClose) break;
 		// Delta time logic
 		float currentTime = static_cast<float>(glfwGetTime());
 		float deltaTime = currentTime - lastFrameTime;
 		lastFrameTime = currentTime;
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		
 		controller.Update(deltaTime);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetProjectionMatrix();

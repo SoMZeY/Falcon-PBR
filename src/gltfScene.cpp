@@ -68,7 +68,6 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
 
     // Have a vector of all primtives metadata per mesh
     std::vector<PrimMeta> tmp;
-
     // Populate all of the primitives
     for (const tinygltf::Primitive& primitive : mesh.primitives)
     {
@@ -154,7 +153,7 @@ void GLTFScene::LoadMesh(const tinygltf::Model& model, const tinygltf::Mesh& mes
         pr.firstIndex = runningIndexBase;
         pr.indexCount = idxAcc.count;
         pr.baseVertex = runningVertexBase;
-        if (pr.material >= 0) pr.material = prim.material;
+        if (prim.material >= 0) pr.material = prim.material;
         Cmesh.draws.push_back(pr);
 
         // Write vertices

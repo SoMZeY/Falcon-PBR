@@ -19,15 +19,15 @@ void FpsCameraController::Update(float dt)
 {
 	glm::vec3 moveDir(0.0f);
 
-	if (keysHeld.count(GLFW_KEY_W))			   moveDir	-= camera->GetForward();
-	if (keysHeld.count(GLFW_KEY_S))			   moveDir	+= camera->GetForward();
+	if (keysHeld.count(GLFW_KEY_W))			   moveDir	+= camera->GetForward();
+	if (keysHeld.count(GLFW_KEY_S))			   moveDir	-= camera->GetForward();
 	if (keysHeld.count(GLFW_KEY_A))			   moveDir	+= camera->GetRight();
 	if (keysHeld.count(GLFW_KEY_D))			   moveDir	-= camera->GetRight();
 	if (keysHeld.count(GLFW_KEY_SPACE))        moveDir	-= camera->GetUp();
 	if (keysHeld.count(GLFW_KEY_LEFT_CONTROL)) moveDir  += camera->GetUp();
 
 	if (glm::length(moveDir) > 0.0f)
-		camera->MoveRelative(glm::normalize(moveDir) * moveSpeed * dt);
+		camera->Move(glm::normalize(moveDir) * moveSpeed * dt);
 }
 
 void FpsCameraController::SetMoveSpeed(float speed)

@@ -1,6 +1,8 @@
 ﻿#include "camera.h"
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <iostream>
+
 Camera::Camera(float fovDegrees, float aspectRatio, float nearPlane, float farPlane)
 	: fov(fovDegrees), aspect(aspectRatio),
 	nearPlane(nearPlane), farPlane(farPlane),
@@ -41,6 +43,7 @@ glm::vec3 Camera::GetPosition() const
 void Camera::SetPosition(const glm::vec3& newPosition)
 {
 	position = newPosition;
+	viewDirty = true;
 }
 
 glm::vec3 Camera::GetForward() const
