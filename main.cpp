@@ -3,13 +3,8 @@
 #include <GLFW/glfw3.h>
 
 #include <openglErrorReporting.h>
-#include <vertexBuffer.h>
-#include <vertexArray.h>
-#include <vertexBufferLayout.h>
-#include <indexBuffer.h>
-#include <shader.h>
-#include <fpsCameraController.h>
-#include <gltfScene.h>
+#include "renderer.h"
+#include "fpsCameraController.h"
 
 // Global controller to tie the callbacks (Perhaps change later to have no globals)
 FpsCameraController* g_controller = nullptr;
@@ -85,51 +80,14 @@ int main()
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
 
-	// Triangle vertex buffer data
-	float verticesTriangle[] = {
-		//  COORDINATES         COLORS
-		-0.8f, -0.8f, 0.0f, 1.0f, 0.0f, 0.0f,
-		 0.8f, -0.8f, 0.0f, 0.0f, 1.0f, 0.0f,
-		 0.0f,  0.8f, 0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	unsigned int indexesTriangle[] = {
-		0, 1, 2
-	};
-
 	// Load Damaged Helmet
 	GLTFScene damagedHelmet(std::string(RESOURCES_PATH) + "models/gltf/DamagedHelmet.glb");
 	// Create shaders and shader program for the damagedHelmet
 	Shader damagedHelmetProgram((std::string(RESOURCES_PATH) + "shaders/vertexGltf.vert").c_str(),
 		(std::string(RESOURCES_PATH) + "shaders/fragmentGltf.frag").c_str());
+	// Create Phong light stuct
+	PhongLightComponent damagedHelmetLight({ 1.0f, 1.0f, 1.0f }, 1.0f, { 1.0f, 1.0f, -7.0f });
 	
-	// Create and bind vbo
-	VertexBuffer vbo(verticesTriangle, sizeof(verticesTriangle), GL_STATIC_DRAW);
-	vbo.Bind();
-
-	// Create buffer layout and push coord and color layout elements
-	VertexBufferLayout vbl;
-	vbl.Push<float>(3);
-	vbl.Push<float>(3);
-
-	// Create and bind vao, and call add buffer
-	VertexArray vao;
-	vao.AddBuffer(vbo, vbl);
-	vao.Bind();
-
-	// Create and bind ibo, thus will be binded to the vao
-	IndexBuffer ibo(indexesTriangle, 3, GL_STATIC_DRAW);
-	ibo.Bind();
-
-	// Create shaders and shader program
-	Shader shaderProgram((std::string(RESOURCES_PATH) + "shaders/vertexShader.vert").c_str(),
-						 (std::string(RESOURCES_PATH) + "shaders/fragmentShader.frag").c_str());
-
-	// Unbind vbo, vao, ibo
-	vbo.Unbind();
-	vao.Unbind();
-	ibo.Unbind();
-
 
 	// Camera related
 	Camera camera(45.0f, 640.0f / 480.0f, 0.01f, 100.0f);
@@ -141,6 +99,9 @@ int main()
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetKeyCallback(window, key_callback);
 
+	// Create Renderer
+	Renderer renderer(&camera);
+	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet, &damagedHelmetLight);
 
 	// Delta time 
 	float lastFrameTime = 0.0f;
@@ -148,21 +109,18 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		if (windowClose) break;
+
 		// Delta time logic
 		float currentTime = static_cast<float>(glfwGetTime());
 		float deltaTime = currentTime - lastFrameTime;
 		lastFrameTime = currentTime;
 
+		glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		renderer.render();
 		
 		controller.Update(deltaTime);
-		glm::mat4 view = camera.GetViewMatrix();
-		glm::mat4 projection = camera.GetProjectionMatrix();
-		glm::mat4 model = glm::mat4(1.0f);
-		damagedHelmetProgram.use();
-		glm::mat4 mvp = projection * view * model;
-		damagedHelmetProgram.setMat4("u_MVP", mvp);
-		damagedHelmet.Draw(damagedHelmetProgram);
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);
