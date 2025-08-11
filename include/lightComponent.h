@@ -12,24 +12,19 @@ enum LightcasterType
 	FLASH_LIGHT,
 };
 
-struct LightValues
+struct alignas(16) LightValues
 {
 	// General light
-	glm::vec3 lightDir; // Can represent position based on homogeneous values
+	glm::vec4 lightDir; // Can represent position based on homogeneous values
 
 	// Phong Light values
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
+	glm::vec4 color;
 
-	// Attenuation specific
-	float constant;
-	float linear;
-	float quadratic;
+	// Attenuation specific: x = constant, y = linear, z = quadratic, w = nothing
+	glm::vec4 attenuation; 
 
-	// Flashlight specific
-	float innerCone;
-	float outerCone;
+	// Flashlight specific; x = innerConeRadius, y = outerConeRadius, z/w = nothing
+	glm::vec4 flashlight; 
 };
 
 class PhongLightComponent
