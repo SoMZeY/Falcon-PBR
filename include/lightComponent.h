@@ -14,14 +14,21 @@ enum LightcasterType
 
 struct alignas(16) LightValues
 {
+	// Type of caster
+	LightcasterType type;
+
+	// Phong Light values, xyz = color, w = type
+	glm::vec3 color;
+
 	// General light
-	glm::vec4 lightDir; // Can represent position based on homogeneous values
+	// Can represent position based on homogeneous values
+	glm::vec4 lightDir;
 
-	// Phong Light values
-	glm::vec4 color;
+	// Intensity of the light color
+	float intensity;
 
-	// Attenuation specific: x = constant, y = linear, z = quadratic, w = nothing
-	glm::vec4 attenuation; 
+	// Attenuation specific: x = constant, y = linear, z = quadratic
+	glm::vec3 attenuation; 
 
 	// Flashlight specific; x = innerConeRadius, y = outerConeRadius, z/w = nothing
 	glm::vec4 flashlight; 
@@ -30,19 +37,16 @@ struct alignas(16) LightValues
 class PhongLightComponent
 {
 public:
-	PhongLightComponent(const glm::vec3& lightColor, float lightIntensity, const glm::vec3& worldPosition) 
-		: color(lightColor), intensity(lightIntensity), position(worldPosition) {};
+	PhongLightComponent(LightcasterType casterType, const glm::vec3& lightColor, float lightIntensity,
+		const glm::vec3& worldPosition, const glm::vec3& attenuationVals, const glm::vec2& flashLightValues);
 
-	glm::vec3 GetColor();
-	float GetIntensity();
-	glm::vec3 GetWorldPosition();
+	LightValues getLightValues() const;
+
 private:
-	glm::vec3 color;
-	float intensity;
-	LightValues lightValues;
+	glm::vec4 convertDegreesToVec4(const glm::vec2& flashlightVals);
 
-	// TODO; refactor later with the transform object
-	glm::vec3 position;
+private:
+	LightValues lightValues;
 };
 
 #endif

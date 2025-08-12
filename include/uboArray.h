@@ -3,8 +3,9 @@
 
 #include "uniformBuffer.h"
 #include <vector>
+#include <algorithm>
 
-template<typename T, int N>
+template<typename T, size_t N>
 class UboArray
 {
 public:
@@ -21,6 +22,10 @@ public:
 		// Get the size but clamp so it does not reach over the initially set size
 		unsigned int size = std::min(m_count, data.size());
 		m_UBO.UpdateData(size * sizeof(T), data.data());
+	}
+	void linkToShader(const Shader& shaderProgram)
+	{
+		m_UBO.AttachShader(shaderProgram, m_bindingUnit);
 	}
 
 private:

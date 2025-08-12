@@ -19,8 +19,9 @@ public:
     void setMat4(const std::string& name, glm::mat4 value) const;
     void setVec3(const std::string& name, glm::vec3 value) const;
 
-    // Getting the uniform block name
+    // Utility Uniform Buffer functions
     unsigned int getUniformBlockIndex(const std::string& name) const;
+    void glBindBlockToBindingPoint(unsigned int blockIdx, unsigned int uniformBlockBinding) const;
 private:
     unsigned int m_Id;
 };

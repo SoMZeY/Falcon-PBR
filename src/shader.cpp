@@ -127,3 +127,8 @@ unsigned int Shader::getUniformBlockIndex(const std::string& name) const
 {
     return glGetUniformBlockIndex(m_Id, name.c_str());
 }
+
+void Shader::glBindBlockToBindingPoint(unsigned int blockIdx, unsigned int uniformBlockBinding) const
+{
+    glUniformBlockBinding(m_Id, blockIdx, uniformBlockBinding);
+}
