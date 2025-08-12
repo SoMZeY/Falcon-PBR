@@ -27,7 +27,7 @@ void UniformBuffer::UpdateData(size_t byteSize, size_t dstOffset, const void* da
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void UniformBuffer::AttachShader(const Shader& shaderProgram, unsigned int bindingBlock, std::string blockName)
+void UniformBuffer::AttachShader(const Shader& shaderProgram, unsigned int bindingBlock, const std::string& blockName)
 {
 	shaderProgram.use();
 	unsigned int uboIdx = shaderProgram.getUniformBlockIndex(blockName.c_str());

@@ -85,8 +85,16 @@ int main()
 	// Create shaders and shader program for the damagedHelmet
 	Shader damagedHelmetProgram((std::string(RESOURCES_PATH) + "shaders/vertexGltf.vert").c_str(),
 		(std::string(RESOURCES_PATH) + "shaders/fragmentGltf.frag").c_str());
-	// Create Phong light stuct
-	PhongLightComponent damagedHelmetLight({ 1.0f, 1.0f, 1.0f }, 1.0f, { 1.0f, 1.0f, -7.0f });
+
+	LightValues lightValues;
+	lightValues.type = LightcasterType::DIRECTIONAL_LIGHT;
+	lightValues.colorIntensity = 1.0f;
+	lightValues.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	lightValues.lightDir = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+	lightValues.spotlight = glm::vec2(0.0f);
+	lightValues.attenuation = glm::vec4(0.0f);
+
+	PhongLightComponent lightComponent(lightValues);
 	
 
 	// Camera related
@@ -101,7 +109,7 @@ int main()
 
 	// Create Renderer
 	Renderer renderer(&camera);
-	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet, &damagedHelmetLight);
+	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet, &lightComponent);
 
 	// Delta time 
 	float lastFrameTime = 0.0f;

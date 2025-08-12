@@ -13,6 +13,7 @@
 #include <fpsCameraController.h>
 #include <gltfScene.h>
 #include <lightComponent.h>
+#include <uboArray.h>
 
 struct PoorECS
 {

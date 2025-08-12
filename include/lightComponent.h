@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-enum LightcasterType
+enum class LightcasterType
 {
 	TYPE_UNKNOWN = -1,
 	DIRECTIONAL_LIGHT,
@@ -14,33 +14,29 @@ enum LightcasterType
 
 struct alignas(16) LightValues
 {
-	// Type of caster
 	LightcasterType type;
+	float colorIntensity;
+	glm::vec2 spotlight;
+	// Phong Light values, xyz = color
+	glm::vec4 color;
 
-	// Phong Light values, xyz = color, w = type
-	glm::vec3 color;
-
-	// General light
 	// Can represent position based on homogeneous values
 	glm::vec4 lightDir;
 
-	// Intensity of the light color
-	float intensity;
-
-	// Attenuation specific: x = constant, y = linear, z = quadratic
-	glm::vec3 attenuation; 
-
-	// Flashlight specific; x = innerConeRadius, y = outerConeRadius, z/w = nothing
-	glm::vec4 flashlight; 
+	// Attenuation specific: x = constant, y = linear, z = quadratic, w = nothing
+	glm::vec4 attenuation; 
 };
 
 class PhongLightComponent
 {
 public:
-	PhongLightComponent(LightcasterType casterType, const glm::vec3& lightColor, float lightIntensity,
-		const glm::vec3& worldPosition, const glm::vec3& attenuationVals, const glm::vec2& flashLightValues);
+	PhongLightComponent(LightcasterType casterType, const glm::vec4& lightColor, float lightIntensity,
+		const glm::vec4& worldPosition, const glm::vec3& attenuationVals, const glm::vec2& spotLightValues);
+
+	PhongLightComponent(LightValues lightVals);
 
 	LightValues getLightValues() const;
+	
 
 private:
 	glm::vec4 convertDegreesToVec4(const glm::vec2& flashlightVals);

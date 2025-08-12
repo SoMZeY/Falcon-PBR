@@ -24,7 +24,7 @@ public:
 	void Bind(unsigned int bindingPoint);
 	void AllocateData(size_t byteSize, unsigned int usage);
 	void UpdateData(size_t byteSize, size_t dstOffset, const void* data);
-	void AttachShader(const Shader& shaderProgram, unsigned int bindingBlock, std::string blockName);
+	void AttachShader(const Shader& shaderProgram, unsigned int bindingBlock, const std::string& blockName);
 
 private:
 	unsigned int m_Id;

@@ -1,6 +1,8 @@
 #include "renderer.h"
 #include <iostream>
 
+#define MAX_AMOUNT_OF_PHONG_LIGHTS 16
+
 Renderer::~Renderer()
 {
 }
@@ -21,12 +23,17 @@ void Renderer::render()
 		ecs.shaderPrograms[entityID]->setMat4("u_MVP", mvp);
 		ecs.shaderPrograms[entityID]->setMat4("u_Model", model);
 
-		// Light uniform
-		ecs.shaderPrograms[entityID]->setVec3("u_lightLocation", ecs.phongLights[entityID]->GetWorldPosition());
-		ecs.shaderPrograms[entityID]->setFloat("u_lightIntensity", ecs.phongLights[entityID]->GetIntensity());
-		ecs.shaderPrograms[entityID]->setVec3("u_lightColor", ecs.phongLights[entityID]->GetColor());
-		ecs.shaderPrograms[entityID]->setVec3("u_cameraPos", camera->GetPosition());
+		// Light uniform object
+		const size_t sizeOfPhongLights = ecs.phongLights.size();
+		UboArray<LightValues, MAX_AMOUNT_OF_PHONG_LIGHTS> lightUbo(0, "LightsUBO");
+		
+		std::vector<LightValues> lights;
 
+		for (int i = 0; i < MAX_AMOUNT_OF_PHONG_LIGHTS; i++)
+			lights.push_back(ecs.phongLights[i]->getLightValues());
+
+		lightUbo.UpdateData(lights);
+		lightUbo.linkToShader(*ecs.shaderPrograms[entityID]);
 		ecs.models[entityID]->Draw(*ecs.shaderPrograms[entityID]);
 	}
 }
