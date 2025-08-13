@@ -12,14 +12,15 @@
 #include <shader.h>
 #include <fpsCameraController.h>
 #include <gltfScene.h>
-#include <lightComponent.h>
+#include <phongLightManager.h>
 #include <uboArray.h>
+
+#define MAX_AMOUNT_OF_PHONG_LIGHTS 16
 
 struct PoorECS
 {
 	std::vector<GLTFScene*>				models;
 	std::vector<Shader*>				shaderPrograms;
-	std::vector<PhongLightComponent*>   phongLights;
 };
 
 class Renderer
@@ -28,12 +29,12 @@ public:
 	Renderer(Camera* cameraPtr) : camera(cameraPtr) {};
 	~Renderer();
 	void render();
-	uint32_t InsertEntity(Shader* shaderProgram, GLTFScene* model, PhongLightComponent* phongLight);
+	uint32_t InsertEntity(Shader* shaderProgram, GLTFScene* model);
+	void AddLightObject(const LightValues& lightValues);
 private:
-private:
+	PhongLightingManager phong;
 	const Camera* camera;
 	PoorECS ecs;
 };
-
 
 #endif

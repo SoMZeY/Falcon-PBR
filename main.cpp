@@ -83,19 +83,24 @@ int main()
 	// Load Damaged Helmet
 	GLTFScene damagedHelmet(std::string(RESOURCES_PATH) + "models/gltf/DamagedHelmet.glb");
 	// Create shaders and shader program for the damagedHelmet
-	Shader damagedHelmetProgram((std::string(RESOURCES_PATH) + "shaders/vertexGltf.vert").c_str(),
-		(std::string(RESOURCES_PATH) + "shaders/fragmentGltf.frag").c_str());
+	Shader damagedHelmetProgram((std::string(RESOURCES_PATH) + "shaders/phongVertex.vert").c_str(),
+		(std::string(RESOURCES_PATH) + "shaders/phongFragment.frag").c_str());
 
-	LightValues lightValues;
-	lightValues.type = LightcasterType::DIRECTIONAL_LIGHT;
-	lightValues.colorIntensity = 1.0f;
-	lightValues.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	lightValues.lightDir = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
-	lightValues.spotlight = glm::vec2(0.0f);
-	lightValues.attenuation = glm::vec4(0.0f);
+	LightValues dir{};
+	dir.type = LightcasterType::DIRECTIONAL_LIGHT;
+	dir.colorIntensity = 0.2f;
+	dir.color = glm::vec4(1.0f);
+	dir.lightDir = glm::vec4(glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)), 0.0f);
+	dir.spotlight = glm::vec2(0.0f);
+	dir.attenuation = glm::vec4(0.0f);
 
-	PhongLightComponent lightComponent(lightValues);
-	
+	LightValues point{};
+	point.type = LightcasterType::POINT_LIGHT;
+	point.colorIntensity = 1.0f;
+	point.color = glm::vec4(1.0f, 0.2f, 0.2f, 1.0f);
+	point.lightDir = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	point.spotlight = glm::vec2(0.0f);
+	point.attenuation = glm::vec4(1.0f, 0.7f, 1.8f, 0.0f);
 
 	// Camera related
 	Camera camera(45.0f, 640.0f / 480.0f, 0.01f, 100.0f);
@@ -109,7 +114,9 @@ int main()
 
 	// Create Renderer
 	Renderer renderer(&camera);
-	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet, &lightComponent);
+	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet);
+	renderer.AddLightObject(dir);
+	renderer.AddLightObject(point);
 
 	// Delta time 
 	float lastFrameTime = 0.0f;

@@ -4,7 +4,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 aUV;
 
-uniform mat4  u_MVP;
+uniform mat4 u_MVP;
 
 out vec2 vUV;
 out vec3 vNormal;

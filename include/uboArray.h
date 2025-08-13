@@ -16,7 +16,7 @@ public:
 		m_UBO.AllocateData(sizeof(glm::uvec4) + sizeof(T) * N, GL_DYNAMIC_DRAW);
 	}
 
-	void UpdateData(const std::vector<T> data)
+	void UpdateData(const std::vector<T>& data)
 	{
 		m_UBO.Bind(m_bindingUnit);
 
