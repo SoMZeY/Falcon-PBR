@@ -24,7 +24,7 @@ void Renderer::render()
 
         // Per-fragment view vector: pass camera position
         shader.setVec3("u_CameraPos", camera->GetPosition());
-
+        shader.setVec3("u_ViewDir", camera->GetForward());
         // UBO upload + link
         UboArray<LightValues, MAX_AMOUNT_OF_PHONG_LIGHTS> ubo(0, "LightsUBO");
         ubo.UpdateData(lights);
