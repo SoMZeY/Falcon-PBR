@@ -66,7 +66,7 @@ void Camera::LookAt(const glm::vec3& target)
 	// Calculate
 	forward = glm::normalize(target - position);
 	right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
-	up = glm::normalize(glm::cross(forward, right));
+	up = glm::normalize(glm::cross(right, forward));
 
 	pitch = glm::degrees(asin(forward.y));
 	yaw = glm::degrees(atan2(forward.z, forward.x));
@@ -110,5 +110,5 @@ void Camera::UpdateCameraVectors()
 	forward = glm::normalize(fwd);
 
 	right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
-	up = glm::normalize(glm::cross(forward, right));
+	up = glm::normalize(glm::cross(right, forward));
 }

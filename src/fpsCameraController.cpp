@@ -6,7 +6,7 @@ FpsCameraController::FpsCameraController(Camera* cam, float speed, float sensivi
 
 void FpsCameraController::OnMouseMove(float dx, float dy)
 {
-	camera->Rotate(dy * mouseSensitivity, -dx * mouseSensitivity);
+	camera->Rotate(-dy * mouseSensitivity, dx * mouseSensitivity);
 }
 
 void FpsCameraController::OnKeyPress(int key, int action)
@@ -21,10 +21,10 @@ void FpsCameraController::Update(float dt)
 
 	if (keysHeld.count(GLFW_KEY_W))			   moveDir	+= camera->GetForward();
 	if (keysHeld.count(GLFW_KEY_S))			   moveDir	-= camera->GetForward();
-	if (keysHeld.count(GLFW_KEY_A))			   moveDir	+= camera->GetRight();
-	if (keysHeld.count(GLFW_KEY_D))			   moveDir	-= camera->GetRight();
-	if (keysHeld.count(GLFW_KEY_SPACE))        moveDir	-= camera->GetUp();
-	if (keysHeld.count(GLFW_KEY_LEFT_CONTROL)) moveDir  += camera->GetUp();
+	if (keysHeld.count(GLFW_KEY_A))			   moveDir	-= camera->GetRight();
+	if (keysHeld.count(GLFW_KEY_D))			   moveDir	+= camera->GetRight();
+	if (keysHeld.count(GLFW_KEY_SPACE))        moveDir	+= camera->GetUp();
+	if (keysHeld.count(GLFW_KEY_LEFT_CONTROL)) moveDir  -= camera->GetUp();
 
 	if (glm::length(moveDir) > 0.0f)
 		camera->Move(glm::normalize(moveDir) * moveSpeed * dt);
