@@ -101,6 +101,7 @@ int main()
 	dir.colorIntensity = 0.2f;
 	dir.color = glm::vec4(1.0f);
 	dir.lightDir = glm::vec4(glm::normalize(glm::vec3(-1.0f, 10.0f, -1.0f)), 0.0f);
+	dir.position = glm::vec4(0.0f);
 	dir.spotlight = glm::vec2(0.0f);
 	dir.attenuation = glm::vec4(0.0f);
 
@@ -108,12 +109,12 @@ int main()
 	point.type = LightcasterType::POINT_LIGHT;
 	point.colorIntensity = 1.0f;
 	point.color = glm::vec4(1.0f, 0.2f, 0.2f, 1.0f);
-	point.lightDir = glm::vec4(2.0f, 2.0f, 0.5f, 1.0f);
+	point.lightDir = glm::normalize(glm::vec4(2.0f, 2.0f, 0.5f, 1.0f));
 	point.spotlight = glm::vec2(0.0f);
 	point.attenuation = glm::vec4(1.0f, 0.22f, 0.2f, 0.0f);
 	
 	LightValues spot{};
-	spot.type = LightcasterType::FLASH_LIGHT;
+	spot.type = LightcasterType::SPOT_LIGHT;
 	spot.colorIntensity = 0.8f;
 	spot.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	spot.lightDir = glm::vec4(camera.GetPosition(), 1.0f);

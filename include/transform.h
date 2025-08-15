@@ -17,6 +17,7 @@ public:
 	glm::mat4 TranslateLocal(glm::vec3 translationVector);
 	glm::mat4 TranslateLocal(glm::mat4 translationMatrix);
 	glm::mat4 UniformScale(float scaleFactor);
+	glm::vec3 GetWorldObjectDirection();
 private:
 	glm::mat4 modelMatrix;
 };

@@ -49,3 +49,8 @@ glm::mat4 Transform::UniformScale(float scaleFactor)
 	modelMatrix = glm::scale(modelMatrix, glm::vec3(scaleFactor));
 	return modelMatrix;
 }
+
+glm::vec3 Transform::GetWorldObjectDirection()
+{
+	return glm::normalize(glm::vec3(modelMatrix[0][2], modelMatrix[1][2], modelMatrix[2][2]));
+}
