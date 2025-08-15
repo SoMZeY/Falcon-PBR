@@ -1,139 +1,74 @@
+// fragmentFloor.glsl
 #version 420 core
-#define MAX_UBO_LIGHTS 16
 
-in vec2 vUV;
-in vec3 vNormal;
-in vec3 vPos;
+in vec3 vNormal;  // view-space
+in vec3 vPos;     // view-space
+out vec4 FragColor;
 
-uniform vec3 u_ViewDir;
-uniform vec3 u_CameraPos;
-
+// ---- Lights UBO (std140) ----
+#define MAX_LIGHTS 16
 struct Light {
-    uint  type;            // 0 = directional, 1 = point, 2 = spotlight
-    float colorIntensity;
-    vec2  spotlight;       // x innerCone, y outerCone
-    vec4  color;           // rgb + unused a
-    vec4  lightDir;        // dir for dir light; *position* for point (xyz)
-    vec4  attenuation;     // (k0, k1, k2, unused)
+    vec4  color;       // rgb
+    vec4  position;    // view-space (unused for dir)
+    vec4  lightDir;    // normalized view-space, w=0
+    vec4  attenuation; // x=c, y=l, z=q
+    vec2  spotlight;   // cos(inner), cos(outer)
+    float intensity;
+    int   type;        // 0=dir, 1=point, 2=spot
 };
 
 layout(std140, binding = 0) uniform LightsUBO {
-    ivec4 lightCount;
-    Light lights[MAX_UBO_LIGHTS];
-} u_Lights;
+    uvec4 header;
+    Light lights[MAX_LIGHTS];
+};
 
-out vec4 FragColor;
+vec3 evalLight(in Light L, in vec3 fragPosVS, in vec3 N)
+{
+    vec3 Lvec;
+    float att = 1.0;
 
-vec3 CalcDirLight(in Light light, in vec3 normal, in vec3 viewDir);
-vec3 CalcPointLight(in Light light, in vec3 normal, in vec3 viewDir, in vec3 fragPos);
-vec3 CalcSpotLight(in Light light, in vec3 normal, in vec3 viewDir, in vec3 fragPos);
+    if (L.type == 0) {
+        // Directional: -lightDir points from light to fragment
+        Lvec = normalize(-L.lightDir.xyz);
+    } else {
+        vec3 toLight = L.position.xyz - fragPosVS;
+        float dist = length(toLight);
+        Lvec = toLight / max(dist, 1e-6);
+        att = 1.0 / (L.attenuation.x + L.attenuation.y * dist + L.attenuation.z * dist * dist);
+    }
+
+    // Spot cone
+    float spot = 1.0;
+    if (L.type == 2) {
+        float cosTheta = dot(-L.lightDir.xyz, Lvec);
+        float inner = L.spotlight.x, outer = L.spotlight.y;
+        float t = clamp((cosTheta - outer) / max(inner - outer, 1e-5), 0.0, 1.0);
+        spot = t * t * (3.0 - 2.0 * t);
+    }
+
+    float NdotL = max(dot(N, Lvec), 0.0);
+
+    // Classic Phong specular
+    vec3 V = normalize(-fragPosVS);   // camera at origin in view space
+    vec3 R = reflect(-Lvec, N);
+    float spec = pow(max(dot(V, R), 0.0), 64.0) * 0.9;
+
+    vec3 radiance = L.color.rgb * L.intensity * att * spot;
+    return radiance * (NdotL + spec);
+}
 
 void main()
 {
-    vec3 albedo  = vec3(0.1, 0.1, 0.1);
-    vec3 normal  = normalize(vNormal);
-    vec3 viewDir = normalize(u_CameraPos - vPos);
-    vec3 spotDir = normalize(u_ViewDir);
+    // Solid floor color; change as needed
+    vec3 albedo = vec3(0.8);
 
-    vec3 lighting = vec3(0.0);
+    vec3 N = normalize(vNormal);
+    vec3 ambient = 0.05 * albedo;
 
-    int count = min(u_Lights.lightCount.x, MAX_UBO_LIGHTS);
-    for (int i = 0; i < count; ++i)
-    {
-        Light L = u_Lights.lights[i];
-        if (L.type == uint(0)) 
-        {
-            lighting += CalcDirLight(L, normal, viewDir);
-        } 
-        else if (L.type == uint(1)) 
-        {
-            lighting += CalcPointLight(L, normal, viewDir, vPos);;
-        }
-        else if (L.type == uint(2)) 
-        {
-            lighting += CalcSpotLight(L, normal, spotDir, vPos);
-        }
-    }
+    uint count = min(header.x, uint(MAX_LIGHTS));
+    vec3 sumLights = vec3(0.0);
+    for (uint i = 0u; i < count; ++i)
+        sumLights += evalLight(lights[i], vPos, N) * albedo;
 
-    FragColor = vec4(lighting * albedo, 1.0);
-}
-
-vec3 CalcDirLight(in Light light, in vec3 normal, in vec3 viewDir)
-{
-    vec3 L = normalize(light.lightDir.xyz);
-    float diff = max(dot(normal, L), 0.0);
-
-    vec3 R = reflect(-L, normal);
-    float spec = pow(max(dot(viewDir, R), 0.0), 64);
-
-    vec3 ambient  = light.color.rgb * light.colorIntensity;
-    vec3 diffuse  = light.color.rgb * diff;
-    vec3 specular = light.color.rgb * spec;
-
-    return ambient + diffuse + specular;
-}
-
-vec3 CalcPointLight(in Light light, in vec3 normal, in vec3 viewDir, in vec3 fragPos)
-{
-    // Interpret light.lightDir.xyz as *position* for point lights
-    vec3 toLight = light.lightDir.xyz - fragPos;
-    float dist   = length(toLight);
-    vec3  L      = dist > 0.0 ? toLight / dist : vec3(0.0);
-
-    // Lambert + Phong
-    float diff = max(dot(normal, L), 0.0);
-
-    // Attenuation: attenuation.xyz = (k0, k1, k2)
-    float k0 = light.attenuation.x;
-    float k1 = light.attenuation.y;
-    float k2 = light.attenuation.z;
-    float att = 1.0 / max(k0 + k1 * dist + k2 * dist * dist, 1e-4);
-
-    // Simple specular
-    vec3 R = reflect(-L, normal);
-    float spec = pow(max(dot(viewDir, R), 0.0), 32.0);
-
-    vec3 diffuse  = light.color.rgb * diff;
-    vec3 specular = light.color.rgb * spec;
-
-    return (diffuse + specular) * att * light.colorIntensity;
-}
-
-vec3 CalcSpotLight(in Light light, in vec3 normal, in vec3 spotDir, in vec3 fragPos)
-{
-    vec3 toLight = light.lightDir.xyz - fragPos;
-    float dist   = length(toLight);
-    vec3  L      = dist > 0.0 ? toLight / dist : vec3(0.0);
-
-    // Cone test: compare spotlight forward with vector from light to fragment (-L)
-    float theta  = dot(normalize(spotDir), -L);
-
-    vec3 finalColor = vec3(0.0);
-    if (theta > light.spotlight.x) 
-    {
-        finalColor = light.color.rgb;
-    } 
-    else if (theta > light.spotlight.y) 
-    {
-        float edge = clamp((theta - light.spotlight.y) /
-                           max(light.spotlight.x - light.spotlight.y, 1e-4), 0.0, 1.0);
-        finalColor = light.color.rgb * edge;
-    }
-
-    // Diffuse
-    float diff = max(dot(normalize(normal), L), 0.0);
-
-    // Specular calculation
-    vec3 R = reflect(-L, normalize(normal));
-    vec3 V = normalize(u_CameraPos - fragPos);
-    float spec = pow(max(dot(V, R), 0.0), 32.0);
-
-    // (Optional but recommended) distance attenuation like point lights
-    float k0 = light.attenuation.x, k1 = light.attenuation.y, k2 = light.attenuation.z;
-    float att = 1.0 / max(k0 + k1*dist + k2*dist*dist, 1e-4);
-
-    vec3 diffuse  = finalColor * diff;
-    vec3 specular = finalColor * spec;
-
-    return (diffuse + specular) * light.colorIntensity * att; // add *att if you enabled it
+    FragColor = vec4(ambient + sumLights, 1.0);
 }

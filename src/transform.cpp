@@ -1,6 +1,11 @@
 #include "transform.h"
 #include "glm/gtc/matrix_transform.hpp"
 
+Transform::Transform()
+{
+	modelMatrix = glm::mat4(1.0f);
+}
+
 Transform::Transform(float x, float y, float z)
 {
 
@@ -13,12 +18,12 @@ Transform::Transform(const glm::mat4& model)
 	modelMatrix = model;
 }
 
-glm::vec4 Transform::GetWorldLocation()
+glm::vec4 Transform::GetWorldLocation() const
 {
 	return modelMatrix[3];
 }
 
-glm::mat4 Transform::GetModelMatrix()
+glm::mat4 Transform::GetModelMatrix() const
 {
 	return modelMatrix;
 }
@@ -26,8 +31,8 @@ glm::mat4 Transform::GetModelMatrix()
 glm::mat4 Transform::Rotate(float pitchRadians, float yawRadians, float rollRadians)
 {
 	if (pitchRadians)		modelMatrix = glm::rotate(modelMatrix, pitchRadians,	glm::vec3(1.0f, 0.0f, 0.0f));
-	if (yawRadians)			modelMatrix = glm::rotate(modelMatrix, yawRadians,	glm::vec3(0.0f, 1.0f, 0.0f));
-	if (rollRadians)		modelMatrix = glm::rotate(modelMatrix, rollRadians,	glm::vec3(0.0f, 0.0f, 1.0f));
+	if (yawRadians)			modelMatrix = glm::rotate(modelMatrix, yawRadians,		glm::vec3(0.0f, 1.0f, 0.0f));
+	if (rollRadians)		modelMatrix = glm::rotate(modelMatrix, rollRadians,		glm::vec3(0.0f, 0.0f, 1.0f));
 
 	return modelMatrix;
 }
@@ -50,7 +55,9 @@ glm::mat4 Transform::UniformScale(float scaleFactor)
 	return modelMatrix;
 }
 
-glm::vec3 Transform::GetWorldObjectDirection()
-{
-	return glm::normalize(glm::vec3(modelMatrix[0][2], modelMatrix[1][2], modelMatrix[2][2]));
+glm::vec3 Transform::GetWorldObjectDirection() const {
+	return glm::normalize(glm::vec3(modelMatrix[2][0],
+		modelMatrix[2][1],
+		modelMatrix[2][2]));
+
 }

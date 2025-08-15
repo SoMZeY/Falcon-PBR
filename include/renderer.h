@@ -28,17 +28,20 @@ struct PoorECS
 class Renderer
 {
 public:
-	Renderer(Camera* cameraPtr) : camera(cameraPtr), ubo(0, "LightsUBO") {};
+	Renderer(Camera* cameraPtr) : camera(cameraPtr), uboManager(0, "LightsUBO") {};
 	~Renderer();
 	void render();
 	uint32_t InsertEntity(Shader* shaderProgram, GLTFScene* model, Transform* transform);
-	void AddLightObject(const LightValues& lightValues);
+	int AddLightObject(const LightDesc& lightValues);
+	void EditLightObject(int lightId, const LightDesc& lightValues);
 	void DrawFloor();
+private:
+	void SyncLightsToViewSpace();
 private:
 	PhongLightingManager phong;
 	const Camera* camera;
 	PoorECS ecs;
-	UboArray<LightValues, MAX_AMOUNT_OF_PHONG_LIGHTS> ubo;
+	UboArray<LightWS, MAX_AMOUNT_OF_PHONG_LIGHTS> uboManager;
 };
 
 #endif

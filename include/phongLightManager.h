@@ -24,33 +24,41 @@ struct LightDesc {
 	glm::vec2       spotAnglesCos;
 };
 
-// std140 compliant struct that will be passed into fragment shader
-struct alignas(16) LightValues {
-	glm::vec4		color;         // rgb, a unused
-	glm::vec4		position;      // xyz, w=1 for point/spot; undefined for directional
-	glm::vec4		lightDir;      // normalized dir in chosen space, w=0
-	glm::vec4		attenuation;   // x=c, y=l, z=q, w=unused
-	glm::vec2		spotlight;     // innerCos, outerCos
-	float			intensity;     // separate from color
-	int				type;          // 0=dir,1=point,2=spot (std140: int)
+struct alignas(16) LightWS {
+	glm::vec4 color;        // rgb = light color, a unused
+	glm::vec4 positionWS;   // xyz = world-space position, w=1 for point/spot; 
+							// for directional lights you can leave as (0,0,0,0) or unused
+	glm::vec4 dirWS;        // normalized world-space direction, w=0
+	glm::vec4 attenuation;  // x = constant, y = linear, z = quadratic, w unused
+	glm::vec2 spotlight;    // cos(inner), cos(outer)
+	float     intensity;    // brightness multiplier
+	int       type;         // 0=dir, 1=point, 2=spot
 };
 
-static_assert(sizeof(LightValues) == 80, "std140 mismatch with GLSL Light");
+static_assert(sizeof(LightWS) == 80, "std140 mismatch with GLSL Light");
 
 class PhongLightingManager
 {
 public:
 	PhongLightingManager() : m_Count(0), m_DirectionalLightCount(0), m_PointLightCount(0), m_SpotLightCount(0) {};
-	unsigned int AddLight(const LightValues& lv);
-	std::vector<LightValues>& getAllLightValues();
-	
+	int AddLight(const LightDesc& lv);
+	bool getUboPhongLights(std::vector<LightWS>& uboLightsCollection);
+	void EditLight(int lightId, const LightDesc& lv);
+
+private:
+	LightWS BuildUboStruct(const LightDesc& cpuLight);
+
 private:
 	size_t m_Count;
 	size_t m_DirectionalLightCount;
 	size_t m_PointLightCount;
 	size_t m_SpotLightCount;
+
+	// Cache for GPU formatted light struct in world coordinates
+	std::vector<LightWS> m_UboLightsWorld;
+
+	// Cache for CPU descripted lights
 	std::vector<LightDesc> m_Lights;
-	std::vector<Transform>	 m_LightTransform;
 };
 
 #endif
