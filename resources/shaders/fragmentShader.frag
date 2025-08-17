@@ -40,7 +40,7 @@ vec3 evalLight(in Light L, in vec3 fragPosVS, in vec3 N)
     // Spot cone
     float spot = 1.0;
     if (L.type == 2) {
-        float cosTheta = dot(-L.lightDir.xyz, Lvec);
+        float cosTheta = dot(normalize(L.lightDir.xyz), normalize(-Lvec));
         float inner = L.spotlight.x, outer = L.spotlight.y;
         float t = clamp((cosTheta - outer) / max(inner - outer, 1e-5), 0.0, 1.0);
         spot = t * t * (3.0 - 2.0 * t);
@@ -49,7 +49,7 @@ vec3 evalLight(in Light L, in vec3 fragPosVS, in vec3 N)
     float NdotL = max(dot(N, Lvec), 0.0);
 
     // Classic Phong specular
-    vec3 V = normalize(-fragPosVS);   // camera at origin in view space
+    vec3 V = normalize(-fragPosVS);
     vec3 R = reflect(-Lvec, N);
     float spec = pow(max(dot(V, R), 0.0), 64.0) * 0.9;
 

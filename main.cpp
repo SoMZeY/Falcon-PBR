@@ -118,7 +118,7 @@ int main()
 	LightDesc dir{};
 	dir.type = LightcasterType::DIRECTIONAL_LIGHT;
 	dir.color = glm::vec3(1.0f);
-	dir.intensity = 0.6f;
+	dir.intensity = 0.3f;
 	dir.attenuation = glm::vec3(0.0f);                     // unused for directional
 	dir.spotAnglesCos = glm::vec2(0.0f);                     // unused for directional
 	dir.transform = MakeTransform(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -130,7 +130,7 @@ int main()
 	point.intensity = 1.0f;
 	point.attenuation = glm::vec3(1.0f, 0.22f, 0.20f);
 	point.spotAnglesCos = glm::vec2(0.0f);                  // unused for point
-	point.transform = MakeTransform(glm::vec3(0.5f, 1.1f, 0.5f), glm::vec3(0, 0, 1));
+	point.transform = MakeTransform(glm::vec3(0.5f, 1.5f, 0.5f), glm::vec3(0, 0, 1));
 	
 	// Spot light (at camera, pointing forward)
 	LightDesc spot{};
@@ -173,8 +173,8 @@ int main()
 		spot.color = glm::vec3(1.0f);
 		spot.intensity = 0.8f;
 		spot.attenuation = glm::vec3(1.0f, 0.007f, 0.0002f);
-		spot.spotAnglesCos = glm::vec2(glm::cos(glm::radians(50.0f)),
-			glm::cos(glm::radians(60.0f)));
+		spot.spotAnglesCos = glm::vec2(glm::cos(glm::radians(12.0f)),
+			glm::cos(glm::radians(15.0f)));
 		spot.transform = MakeTransform(camera.GetPosition(), camera.GetForward());
 
 		renderer.EditLightObject(spotLightId, spot);

@@ -141,7 +141,11 @@ void Renderer::SyncLightsToViewSpace()
 	{
 		if (light.type != static_cast<int>(LightcasterType::DIRECTIONAL_LIGHT))
 			light.positionWS = viewMatrix * light.positionWS;
-		light.dirWS = glm::vec4(glm::normalize(glm::mat3(viewMatrix) * glm::vec3(light.dirWS)), 0.0f);
+			light.dirWS = glm::vec4(glm::normalize(glm::mat3(viewMatrix) * glm::vec3(light.dirWS)), 0.0f);
+
+		if (light.type == static_cast<int>(LightcasterType::SPOT_LIGHT))
+			light.dirWS = -light.dirWS;
+			//std::cout << "Spot light direction coord: x: " << light.dirWS.x << " y: " << light.dirWS.y << " z:" << light.dirWS.z << std::endl;
 	}
 
 	// Put the updated in VIEW space lights to the UBO
