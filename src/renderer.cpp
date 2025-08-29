@@ -21,7 +21,7 @@ void Renderer::render()
         shader.use();
 
 		// THIS IS CUSTOM AND TEMPORARY BEHAVIOR =====START=====
-		ecs.transforms[entityID]->Rotate(0.0f, 0.01f, 0.0f);
+		// ecs.transforms[entityID]->Rotate(0.0f, 0.01f, 0.0f);
 		// THIS IS CUSTOM AND TEMPORARY BEHAVIOR ======END======
 
 		glm::mat4 modelView = view * ecs.transforms[entityID]->GetModelMatrix();

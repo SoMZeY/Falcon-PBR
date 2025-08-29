@@ -52,8 +52,8 @@ int main()
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 #endif
 
 	GLFWwindow *window = glfwCreateWindow(640, 480, "Falcon-PBR", NULL, NULL);
@@ -99,6 +99,17 @@ int main()
 	glm::mat4 model = glm::mat4(1.0f);
 	Transform damagedHelmetTransform(model);
 	damagedHelmetTransform.TranslateLocal(glm::vec3(0.0f, 3.0f, 0.0f));
+
+	// Load Sponza Palace
+	//GLTFScene sponza(std::string(RESOURCES_PATH) + "models/gltf/sponza.glb");
+	//// Create shaders and shader program for the damagedHelmet
+	//Shader sponzaProgram(
+	//	(std::string(RESOURCES_PATH) + "shaders/vertexGltf.vert").c_str(),
+	//	(std::string(RESOURCES_PATH) + "shaders/fragmentGltf.frag").c_str()
+	//);
+
+	//Transform sponzaTransform(model);
+	//sponzaTransform.TranslateLocal(glm::vec3(0.0f, 3.0f, 0.0f));
 
 	// Lamda as the helper for Transform population
 	auto MakeTransform = [](const glm::vec3& pos, glm::vec3 forward) {
@@ -149,6 +160,8 @@ int main()
 	// Now pass everything to renderer
 	Renderer renderer(&camera);
 	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet, &damagedHelmetTransform);
+	//renderer.InsertEntity(&sponzaProgram, &sponza, &sponzaTransform);
+
 	int directionLightId = renderer.AddLightObject(dir);
 	int pointLightId = renderer.AddLightObject(point);
 	int spotLightId = renderer.AddLightObject(spot);
