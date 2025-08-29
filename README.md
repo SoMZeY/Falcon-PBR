@@ -4,7 +4,11 @@ An educational **OpenGL renderer** that loads **glTF/GLB** models, supports a fr
 ### Why
 Learn modern graphics by building the pipeline end-to-end: asset loading → GPU buffers → shaders → realtime interaction.
 Goal: grow this into a small PBR renderer (Cook–Torrance, IBL, HDR tonemapping).
+
 # Demo
+![Demo of feature](media/Videos/DemoGIF.gif)  
+> **Warninig**: due to the nature of GIFs the quality is subpar  
+> **Features in Demo**: Here you can see phong lighting with different lightcasters, such as point, directional, and spotligt. As well as popular gltf asset DamagedHelmet.
 
 # Features
 **Model loading**: glTF/GLB meshes (positions, normals, UVs)
