@@ -1,4 +1,4 @@
-// fragmentFloor.glsl
+// fragmentShader.glsl
 #version 420 core
 
 in vec3 vNormal;  // view-space

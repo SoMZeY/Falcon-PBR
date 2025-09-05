@@ -9,44 +9,62 @@ Renderer::~Renderer()
 
 void Renderer::render()
 {
-    glm::mat4 view = camera->GetViewMatrix();
-    glm::mat4 projection = camera->GetProjectionMatrix();
+	// Full View
+	const glm::mat4 viewWorld = camera->GetViewMatrix();
 
-	// Sync the lights
+	// View with no translation
+	const glm::mat4 viewSkybox = glm::mat4(glm::mat3(viewWorld));
+
+	const glm::mat4 projection = camera->GetProjectionMatrix();
+
+	// Lights in view space use the full view
 	SyncLightsToViewSpace();
 
-    for (size_t entityID = 0; entityID < ecs.models.size(); ++entityID)
-    {
-        Shader& shader = *ecs.shaderPrograms[entityID];
-        shader.use();
+	for (size_t id = 0; id < ecs.models.size(); ++id)
+	{
+		Shader& shader = *ecs.shaderPrograms[id];
+		shader.use();
 
-		// THIS IS CUSTOM AND TEMPORARY BEHAVIOR =====START=====
-		// ecs.transforms[entityID]->Rotate(0.0f, 0.01f, 0.0f);
-		// THIS IS CUSTOM AND TEMPORARY BEHAVIOR ======END======
+		shader.setVec3("u_CameraPos", camera->GetPosition());
+		shader.setVec3("u_ViewDir", camera->GetForward());
 
-		glm::mat4 modelView = view * ecs.transforms[entityID]->GetModelMatrix();
-		glm::mat4 mvp = projection * modelView;
-        shader.setMat4("u_MVP", mvp);
-		shader.setMat4("u_ModelView", modelView);
+		if (ecs.specialInstr[id]) 
+		{
+			// Depth: test but don't write; allow depth==1 to pass
+			glDepthMask(GL_FALSE);
+			glDepthFunc(GL_LEQUAL);
 
-        // Per-fragment view vector: pass camera position
-        shader.setVec3("u_CameraPos", camera->GetPosition());
-        shader.setVec3("u_ViewDir", camera->GetForward());
+			glm::mat4 modelView = viewSkybox * ecs.transforms[id]->GetModelMatrix();
+			glm::mat4 mvp = projection * modelView;
+			shader.setMat4("u_MVP", mvp);
+			shader.setMat4("u_ModelView", modelView);
 
-		// Link the ubo lights with the shader
-		uboManager.linkToShader(shader);
+			skyBoxCubemap.BindTexture();
+			ecs.models[id]->Draw(shader);
 
-        ecs.models[entityID]->Draw(shader);
-    }
+			// Restore for normal objects
+			glDepthFunc(GL_LESS);
+			glDepthMask(GL_TRUE);
+		}
+		else 
+		{
+			glm::mat4 modelView = viewWorld * ecs.transforms[id]->GetModelMatrix();
+			glm::mat4 mvp = projection * modelView;
+			shader.setMat4("u_MVP", mvp);
+			shader.setMat4("u_ModelView", modelView);
 
-	DrawFloor();
+			uboManager.linkToShader(shader);
+			ecs.models[id]->Draw(shader);
+		}
+	}
 }
 
-uint32_t Renderer::InsertEntity(Shader* shaderProgram, GLTFScene* model, Transform* transform)
+uint32_t Renderer::InsertEntity(std::unique_ptr<Shader> shaderProgram, std::unique_ptr<Model> model, std::unique_ptr<Transform> transform, bool special)
 {
-	ecs.models.push_back(model);
-	ecs.shaderPrograms.push_back(shaderProgram);
-	ecs.transforms.push_back(transform);
+	ecs.models.push_back(std::move(model));
+	ecs.shaderPrograms.push_back(std::move(shaderProgram));
+	ecs.transforms.push_back(std::move(transform));
+	ecs.specialInstr.push_back(special);
 
 	return ecs.models.size() - 1;
 }
@@ -62,69 +80,32 @@ void Renderer::EditLightObject(int lightId, const LightDesc& lightValues)
 	phong.EditLight(lightId, lightValues);
 }
 
-void Renderer::DrawFloor()
+void Renderer::CreateFloor()
 {
-	float floor[48] = {
-		// posX, posY, posZ,   normX, normY, normZ
-		 1.0f,  1.0f,  1.0f,   0.0f, 1.0f, 0.0f, // Top right  front
-		 1.0f,  1.0f, -1.0f,   0.0f, 1.0f, 0.0f, // Top right  back
-		-1.0f,  1.0f,  1.0f,   0.0f, 1.0f, 0.0f, // Top left   front
-		-1.0f,  1.0f, -1.0f,   0.0f, 1.0f, 0.0f, // Top left   back
-		 1.0f, -1.0f,  1.0f,   0.0f, 1.0f, 0.0f, // Bottom right front
-		 1.0f, -1.0f, -1.0f,   0.0f, 1.0f, 0.0f, // Bottom right back
-		-1.0f, -1.0f,  1.0f,   0.0f, 1.0f, 0.0f, // Bottom left  front
-		-1.0f, -1.0f, -1.0f,   0.0f, 1.0f, 0.0f  // Bottom left  back
-	};
-
-	unsigned int floorIdx[36] = {
-		2, 0, 1,  2, 1, 3,
-		6, 5, 4,  6, 7, 5,
-		0, 1, 5,  0, 5, 4,
-		2, 6, 7,  2, 7, 3,
-		2, 0, 4,  2, 4, 6,
-		1, 3, 7,  1, 7, 5
-	};
-
-	// BUFFER FORMATTING
-	VertexBuffer floorVbo(floor, 48 * sizeof(float), GL_STATIC_DRAW);
-	floorVbo.Bind();
-
-	VertexBufferLayout floorVaoLayout;
-	floorVaoLayout.Push<float>(3);
-	floorVaoLayout.Push<float>(3);
-
-	VertexArray floorVao;
-	floorVao.Bind();
-	floorVao.AddBuffer(floorVbo, floorVaoLayout);
-
-	IndexBuffer floorIndexBuffer(floorIdx, 36, GL_STATIC_DRAW);
-	floorIndexBuffer.Bind();
-	
+	std::unique_ptr<SimpleModel> floorCube = std::make_unique<SimpleModel>(SimpleModels::CUBE);
 	// SHADER creation
-	Shader floorShader((std::string(RESOURCES_PATH) + "shaders/vertexShader.vert").c_str(),
+	std::unique_ptr<Shader> floorShader = std::make_unique<Shader>((std::string(RESOURCES_PATH) + "shaders/vertexShader.vert").c_str(),
 		(std::string(RESOURCES_PATH) + "shaders/fragmentShader.frag").c_str());
 
-	floorShader.use();
-
-	// MVP matrices
-	glm::mat4 view = camera->GetViewMatrix();
-	glm::mat4 projection = camera->GetProjectionMatrix();
 	glm::mat4 model = glm::mat4(1.0f);
 	model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(100.0f, 1.0f, 100.0f));
-	glm::mat4 modelView = view * model;
-	glm::mat4 mvp = projection * modelView;
+	model = glm::scale(model, glm::vec3(20.0f, 1.0f, 20.0f));
 
-	// Attach to the uniform
-	floorShader.setMat4("u_MVP", mvp);
-	floorShader.setVec3("u_CameraPos", camera->GetPosition());
-	floorShader.setVec3("u_ViewDir", camera->GetForward());
-	floorShader.setMat4("u_ModelView", modelView);
+	std::unique_ptr<Transform> floorTransform = std::make_unique<Transform>(model);
+	InsertEntity(std::move(floorShader), std::move(floorCube), std::move(floorTransform), false);
+}
 
-	// Link the shader with the ubo manager
-	uboManager.linkToShader(floorShader);
+void Renderer::CreateSkyBox(const std::vector<std::string>& skyBoxImages)
+{
+	skyBoxCubemap.LoadTextures(skyBoxImages);
 
-	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, NULL);
+	std::unique_ptr<SimpleModel> skyBoxCube = std::make_unique<SimpleModel>(SimpleModels::CUBE);
+
+	std::unique_ptr<Shader> skyBoxShader = std::make_unique<Shader>((std::string(RESOURCES_PATH) + "shaders/skyBoxVertex.vert").c_str(),
+		(std::string(RESOURCES_PATH) + "shaders/skyBoxFragment.frag").c_str());
+
+	std::unique_ptr<Transform> skyBoxTransform = std::make_unique<Transform>(glm::mat4(1.0f));
+	InsertEntity(std::move(skyBoxShader), std::move(skyBoxCube), std::move(skyBoxTransform), true);
 }
 
 void Renderer::SyncLightsToViewSpace()

@@ -10,12 +10,13 @@
 #include <indexBuffer.h>
 #include "material.h"
 #include "gltfTextureCache.h"
+#include "model.h"
 
-class GLTFScene
+class GLTFScene : public Model
 {
 public:
 	GLTFScene(const std::string& filename);
-	void Draw(Shader& shaderProgram) const;
+	void Draw(Shader& shaderProgram) const override;
 
 private:
 	void LoadFromFile(const std::string& path);

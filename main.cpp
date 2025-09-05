@@ -87,18 +87,18 @@ int main()
 	g_controller = &controller;
 
 	// Load Damaged Helmet
-	GLTFScene damagedHelmet(std::string(RESOURCES_PATH) + "models/gltf/DamagedHelmet.glb");
+	std::unique_ptr<GLTFScene> damagedHelmet = std::make_unique<GLTFScene>(std::string(RESOURCES_PATH) + "models/gltf/DamagedHelmet.glb");
 
 	// Create shaders and shader program for the damagedHelmet
-	Shader damagedHelmetProgram(
+	std::unique_ptr<Shader> damagedHelmetProgram = std::make_unique<Shader>(
 		(std::string(RESOURCES_PATH) + "shaders/vertexGltf.vert").c_str(),
 		(std::string(RESOURCES_PATH) + "shaders/fragmentGltf.frag").c_str()
 	);
 
 	// Model transform
 	glm::mat4 model = glm::mat4(1.0f);
-	Transform damagedHelmetTransform(model);
-	damagedHelmetTransform.TranslateLocal(glm::vec3(0.0f, 3.0f, 0.0f));
+	std::unique_ptr<Transform> damagedHelmetTransform = std::make_unique<Transform>(model);
+	damagedHelmetTransform->TranslateLocal(glm::vec3(0.0f, 3.0f, 0.0f));
 
 	// Load Sponza Palace
 	//GLTFScene sponza(std::string(RESOURCES_PATH) + "models/gltf/sponza.glb");
@@ -130,8 +130,8 @@ int main()
 	dir.type = LightcasterType::DIRECTIONAL_LIGHT;
 	dir.color = glm::vec3(1.0f);
 	dir.intensity = 0.3f;
-	dir.attenuation = glm::vec3(0.0f);                     // unused for directional
-	dir.spotAnglesCos = glm::vec2(0.0f);                     // unused for directional
+	dir.attenuation = glm::vec3(0.0f);
+	dir.spotAnglesCos = glm::vec2(0.0f);
 	dir.transform = MakeTransform(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Point light
@@ -140,7 +140,7 @@ int main()
 	point.color = glm::vec3(1.0f, 0.2f, 0.2f);
 	point.intensity = 1.0f;
 	point.attenuation = glm::vec3(1.0f, 0.22f, 0.20f);
-	point.spotAnglesCos = glm::vec2(0.0f);                  // unused for point
+	point.spotAnglesCos = glm::vec2(0.0f);
 	point.transform = MakeTransform(glm::vec3(0.5f, 1.5f, 0.5f), glm::vec3(0, 0, 1));
 	
 	// Spot light (at camera, pointing forward)
@@ -159,8 +159,22 @@ int main()
 
 	// Now pass everything to renderer
 	Renderer renderer(&camera);
-	renderer.InsertEntity(&damagedHelmetProgram, &damagedHelmet, &damagedHelmetTransform);
+	renderer.InsertEntity(std::move(damagedHelmetProgram), std::move(damagedHelmet), std::move(damagedHelmetTransform), false);
 	//renderer.InsertEntity(&sponzaProgram, &sponza, &sponzaTransform);
+
+	renderer.CreateFloor();
+
+	std::vector<std::string> faces
+	{
+		std::string(RESOURCES_PATH) + "textures/skybox/right.jpg",
+		std::string(RESOURCES_PATH) + "textures/skybox/left.jpg",
+		std::string(RESOURCES_PATH) + "textures/skybox/top.jpg",
+		std::string(RESOURCES_PATH) + "textures/skybox/bottom.jpg",
+		std::string(RESOURCES_PATH) + "textures/skybox/front.jpg",
+		std::string(RESOURCES_PATH) + "textures/skybox/back.jpg"
+	};
+
+	renderer.CreateSkyBox(faces);
 
 	int directionLightId = renderer.AddLightObject(dir);
 	int pointLightId = renderer.AddLightObject(point);
